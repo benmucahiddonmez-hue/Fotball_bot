@@ -125,3 +125,19 @@ def get_live_matches(message):
 
 print('Bot Başarıyla Başlatıldı!')
 bot.infinity_polling()
+from flask import Flask
+import threading
+import os
+
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Bot aktif ve calisiyor!"
+
+def run_flask():
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
+
+# Flask'ı arka planda (thread olarak) başlatıyoruz ki Telegram botunu engellemesin
+threading.Thread(target=run_flask).start()

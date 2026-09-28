@@ -1,12 +1,32 @@
+from flask import Flask
+import os
+import threading
 import requests
 import telebot
 
 # Telegram Bot Token'ını buraya yaz
 TELEGRAM_TOKEN = '8575255003:AAGp9pQqRcOnJNnS4BJ6TiB536-idtXw7JI'
-
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
+# --- 1. FLASK SUNUCUSU (Önce başlatılıyor ki Render portu yakalasın) ---
+app = Flask(__name__)
 
+
+@app.route('/')
+def home():
+  return 'Bot aktif ve calisiyor!'
+
+
+def run_flask():
+  port = int(os.environ.get('PORT', 10000))
+  app.run(host='0.0.0.0', port=port)
+
+
+# Flask'ı arka planda thread olarak başlatıyoruz
+threading.Thread(target=run_flask).start()
+
+
+# --- 2. VERİ ÇEKME FONKSİYONU ---
 def fetch_mackolik_data():
   url = 'https://widget.shamsports.com/livedata'
   headers = {
@@ -25,6 +45,7 @@ def fetch_mackolik_data():
   return None
 
 
+# --- 3. TELEGRAM KOMUTLARI ---
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
   text = (
@@ -123,21 +144,7 @@ def get_live_matches(message):
     )
 
 
-print('Bot Başarıyla Başlatıldı!')
-bot.infinity_polling()
-from flask import Flask
-import threading
-import os
-
-app = Flask(__name__)
-
-@app.route('/')
-def home():
-    return "Bot aktif ve calisiyor!"
-
-def run_flask():
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host='0.0.0.0', port=port)
-
-# Flask'ı arka planda (thread olarak) başlatıyoruz ki Telegram botunu engellemesin
-threading.Thread(target=run_flask).start()
+# --- 4. BOTU BAŞLATMA ---
+if __name__ == '__main__':
+  print('Bot ve Web Sunucusu Başarıyla Başlatıldı!')
+  bot.infinity_polling()

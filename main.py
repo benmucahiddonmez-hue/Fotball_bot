@@ -2,7 +2,7 @@ import requests
 import telebot
 
 # Telegram Bot Token'ını buraya yaz
-TELEGRAM_TOKEN = '8575255003:AAEG-FCm-cyXf3f9xy4LNw49j8sHkSLEeD0'
+TELEGRAM_TOKEN = '8575255003:AAGp9pQqRcOnJNnS4BJ6TiB536-idtXw7JI'
 
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 

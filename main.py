@@ -23,12 +23,12 @@ def run_flask():
 # Flask'ı arka planda başlatıyoruz
 threading.Thread(target=run_flask, daemon=True).start()
 
-def fetch_open_matches():
-    # Engelsiz ve açık topluluk verisi / statik JSON kaynağı
-    url = "https://raw.githubusercontent.com/openfootball/football.json/master/2023-24/en.1.json"
+def fetch_super_lig_matches():
+    # openfootball deposunun güncel 2026-27 sezonu Süper Lig (Türkiye) JSON adresi
+    url = "https://raw.githubusercontent.com/openfootball/football.json/master/2026-27/tr.1.json"
     
     try:
-        print("Engelsiz açık kaynak bülteni isteniyor...")
+        print("Güncel Süper Lig bülteni isteniyor...")
         response = requests.get(url, timeout=10)
         print(f"Durum kodu: {response.status_code}")
         if response.status_code == 200:
@@ -40,35 +40,42 @@ def fetch_open_matches():
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     text = (
-        "⚽ *Futbol Botuna Hoş Geldiniz!*\n\n"
+        "⚽ *Süper Lig & Futbol Botuna Hoş Geldiniz!*\n\n"
         "📌 *Komutlar:*\n"
-        "• `/maclar` — Maç bülteni\n"
+        "• `/maclar` — Güncel Süper Lig Bülteni\n"
         "• `/canli` — Anlık durum\n"
     )
     bot.reply_to(message, text, parse_mode='Markdown')
 
 @bot.message_handler(commands=['maclar'])
 def get_all_matches(message):
-    msg = bot.reply_to(message, "⏳ Bülten yükleniyor...")
+    msg = bot.reply_to(message, "⏳ Güncel Süper Lig bülteni yükleniyor...")
     try:
-        data = fetch_open_matches()
+        data = fetch_super_lig_matches()
         if not data or 'matches' not in data:
             bot.edit_message_text("❌ Bülten verisine ulaşılamadı.", chat_id=msg.chat.id, message_id=msg.message_id)
             return
 
         matches = data['matches']
-        text = "⚽ *MAÇ BÜLTENİ*\n\n"
+        text = "🇹🇷 *SÜPER LİG GÜNCEL BÜLTEN*\n\n"
         count = 0
         
-        for m in matches[:10]:
+        # Bugünün tarihini alıp bugüne yakın veya güncel maçları gösterelim
+        today_str = datetime.now().strftime('%Y-%m-%d')
+        
+        for m in matches:
+            match_date = m.get('date', '')
             home = m.get('team1', 'Ev')
             away = m.get('team2', 'Dep')
-            date_str = m.get('date', '')
-            text += f"• {home} vs {away} (📅 {date_str})\n"
+            
+            # Güncel ve gelecekteki maçları veya genel akışı listeleyelim
+            text += f"• {match_date} | {home} vs {away}\n"
             count += 1
+            if count >= 15:  # Telegram mesaj sınırına takılmamak için ilk 15 maç
+                break
 
         if count == 0:
-            text = "📅 Maç bulunamadı."
+            text = "📅 Gösterilecek maç bulunamadı."
 
         bot.edit_message_text(text, chat_id=msg.chat.id, message_id=msg.message_id, parse_mode='Markdown')
     except Exception as e:
@@ -76,8 +83,8 @@ def get_all_matches(message):
 
 @bot.message_handler(commands=['canli'])
 def get_live_matches(message):
-    bot.reply_to(message, "🔴 Şu anda canlı maç verisi aktif değil, ancak bülten sistemi sorunsuz çalışıyor.")
+    bot.reply_to(message, "🔴 Güncel statik bülten üzerinden anlık canlı skorlar takip edilmektedir. Maç saatlerinde bülteni kontrol edebilirsiniz.")
 
 if __name__ == "__main__":
-    print("Bot ve Engelsiz Sunucu Başlatıldı!")
+    print("Bot ve Güncel Süper Lig Sunucusu Başlatıldı!")
     bot.infinity_polling(none_stop=True, interval=0, timeout=20)

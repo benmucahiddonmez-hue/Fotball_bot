@@ -8,7 +8,7 @@ import telebot
 TELEGRAM_TOKEN = '8575255003:AAGp9pQqRcOnJNnS4BJ6TiB536-idtXw7JI'
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
-# Flask Web Sunucusu (Render'ın port isteğini karşılamak için)
+# Flask Web Sunucusu
 app = Flask(__name__)
 
 @app.route('/')
@@ -20,17 +20,19 @@ def run_flask():
     app.run(host='0.0.0.0', port=port)
 
 # Flask'ı arka planda başlatıyoruz
-threading.Thread(target=run_flask).start()
+threading.Thread(target=run_flask, daemon=True).start()
 
 def fetch_mackolik_data():
-    url = "https://widget.shamsports.com/livedata"
+    # IP engelini aşmak için açık proxy/köprü servisi kullanıyoruz
+    target_url = "https://widget.shamsports.com/livedata"
+    proxy_url = f"https://api.allorigins.win/raw?url={target_url}"
+    
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Referer': 'https://www.mackolik.com/'
     }
     try:
-        print("İstek atılıyor...")
-        response = requests.get(url, headers=headers, timeout=10)
+        print("Proxy üzerinden istek atılıyor...")
+        response = requests.get(proxy_url, headers=headers, timeout=15)
         print(f"Durum kodu: {response.status_code}")
         if response.status_code == 200:
             return response.json()
@@ -104,4 +106,4 @@ def get_live_matches(message):
 
 if __name__ == "__main__":
     print("Bot ve Web Sunucusu Başarıyla Başlatıldı!")
-    bot.infinity_polling()
+    bot.infinity_polling(none_stop=True, interval=0, timeout=20)

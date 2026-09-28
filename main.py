@@ -3,12 +3,13 @@ import os
 import threading
 import requests
 import telebot
+from datetime import datetime
 
 # Telegram Bot Token
 TELEGRAM_TOKEN = '8575255003:AAGp9pQqRcOnJNnS4BJ6TiB536-idtXw7JI'
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
-# Flask Web Sunucusu
+# Flask Web Sunucusu (Render port hatasını önlemek için)
 app = Flask(__name__)
 
 @app.route('/')
@@ -22,17 +23,19 @@ def run_flask():
 # Flask'ı arka planda başlatıyoruz
 threading.Thread(target=run_flask, daemon=True).start()
 
-def fetch_mackolik_data():
-    # IP engelini aşmak için açık proxy/köprü servisi kullanıyoruz
-    target_url = "https://widget.shamsports.com/livedata"
-    proxy_url = f"https://api.allorigins.win/raw?url={target_url}"
+def fetch_sofascore_data():
+    # Bugünün tarihini YYYY-MM-DD formatında alıyoruz (Örn: 2026-09-29)
+    today_str = datetime.now().strftime('%Y-%m-%d')
+    url = f"https://api.sofascore.com/api/v1/sport/football/scheduled-events/{today_str}"
     
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Referer': 'https://www.sofascore.com/'
     }
+    
     try:
-        print("Proxy üzerinden istek atılıyor...")
-        response = requests.get(proxy_url, headers=headers, timeout=15)
+        print("Sofascore API'den veriler isteniyor...")
+        response = requests.get(url, headers=headers, timeout=10)
         print(f"Durum kodu: {response.status_code}")
         if response.status_code == 200:
             return response.json()
@@ -52,21 +55,30 @@ def send_welcome(message):
 
 @bot.message_handler(commands=['maclar'])
 def get_all_matches(message):
-    msg = bot.reply_to(message, "⏳ Bülten çekiliyor...")
+    msg = bot.reply_to(message, "⏳ Bülten Sofascore'dan çekiliyor...")
     try:
-        data = fetch_mackolik_data()
-        if not data or 'm' not in data:
-            bot.edit_message_text("❌ Bülten alınamadı.", chat_id=msg.chat.id, message_id=msg.message_id)
+        data = fetch_sofascore_data()
+        if not data or 'events' not in data or not data['events']:
+            bot.edit_message_text("❌ Bugün için bülten bulunamadı.", chat_id=msg.chat.id, message_id=msg.message_id)
             return
 
-        matches = data['m']
-        text = "⚽ *MAÇ BÜLTENİ*\n\n"
+        events = data['events']
+        text = "⚽ *GÜNÜN MAÇ BÜLTENİ*\n\n"
         count = 0
-        for m in matches[:10]:
-            home = m[1] if len(m) > 1 else "Ev"
-            away = m[2] if len(m) > 2 else "Dep"
-            time_str = m[6] if len(m) > 6 else ""
-            text += f"• {home} vs {away} (⏰ {time_str})\n"
+        
+        for ev in events[:15]: # İlk 15 maçı listeleyelim
+            home = ev.get('homeTeam', {}).get('name', 'Ev')
+            away = ev.get('awayTeam', {}).get('name', 'Dep')
+            tournament = ev.get('tournament', {}).get('name', 'Lig')
+            
+            # Zaman damgasını okunabilir saate çevirme
+            startTimestamp = ev.get('startTimestamp', 0)
+            if startTimestamp:
+                time_str = datetime.fromtimestamp(startTimestamp).strftime('%H:%M')
+            else:
+                time_str = ""
+                
+            text += f"🏆 *{tournament}*\n• {home} vs {away} (⏰ {time_str})\n\n"
             count += 1
 
         if count == 0:
@@ -80,23 +92,26 @@ def get_all_matches(message):
 def get_live_matches(message):
     msg = bot.reply_to(message, "⏳ Canlı maçlar kontrol ediliyor...")
     try:
-        data = fetch_mackolik_data()
-        if not data or 'm' not in data:
-            bot.edit_message_text("❌ Canlı skor alınamadı.", chat_id=msg.chat.id, message_id=msg.message_id)
+        data = fetch_sofascore_data()
+        if not data or 'events' not in data:
+            bot.edit_message_text("🔴 Şu anda canlı maç verisi alınamadı.", chat_id=msg.chat.id, message_id=msg.message_id)
             return
 
         live_matches = []
-        for m in data['m']:
-            status = str(m[3]) if len(m) > 3 else ""
-            if 'MS' not in status and 'Ert' not in status and status != "" and status != "0":
-                home = m[1] if len(m) > 1 else ""
-                away = m[2] if len(m) > 2 else ""
-                sh = m[4] if len(m) > 4 else "0"
-                sa = m[5] if len(m) > 5 else "0"
-                live_matches.append(f"⚡ *{home}* {sh} - {sa} *{away}* ({status})")
+        for ev in data['events']:
+            status_type = ev.get('status', {}).get('type', '')
+            # 'inprogress' yani oynanan canlı maçlar
+            if status_type == 'inprogress':
+                home = ev.get('homeTeam', {}).get('name', '')
+                away = ev.get('awayTeam', {}).get('name', '')
+                home_score = ev.get('homeScore', {}).get('current', '0')
+                away_score = ev.get('awayScore', {}).get('current', '0')
+                status_desc = ev.get('status', {}).get('description', 'Canlı')
+                
+                live_matches.append(f"⚡ *{home}* {home_score} - {away_score} *{away}* ({status_desc})")
 
         if not live_matches:
-            bot.edit_message_text("🔴 Şu anda canlı maç yok.", chat_id=msg.chat.id, message_id=msg.message_id)
+            bot.edit_message_text("🔴 Şu anda canlı oynanan maç bulunmuyor.", chat_id=msg.chat.id, message_id=msg.message_id)
             return
 
         text = "🔴 *CANLI MAÇLAR*\n\n" + "\n".join(live_matches[:10])
@@ -105,5 +120,5 @@ def get_live_matches(message):
         bot.edit_message_text(f"❌ Hata: {e}", chat_id=msg.chat.id, message_id=msg.message_id)
 
 if __name__ == "__main__":
-    print("Bot ve Web Sunucusu Başarıyla Başlatıldı!")
+    print("Bot ve Sofascore Entegrasyonu Başlatıldı!")
     bot.infinity_polling(none_stop=True, interval=0, timeout=20)

@@ -34,6 +34,26 @@ LEAGUES = {
     "🇪🇸 La Liga": "esp.1",
     "⭐ UEFA Şampiyonlar Ligi": "uefa.champions"
 }
+def get_live_matches():
+    # Test için örnek maç verisi
+    return [
+        {
+            "home_team": "Galatasaray",
+            "away_team": "Fenerbahçe",
+            "home_score": 2,
+            "away_score": 1,
+            "status": "75'",
+            "league": "Süper Lig"
+        },
+        {
+            "home_team": "Real Madrid",
+            "away_team": "Barcelona",
+            "home_score": 0,
+            "away_score": 0,
+            "status": "İY",
+            "league": "La Liga"
+        }
+    ]
 
 def fetch_scoreboard(slug):
     url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/{slug}/scoreboard"
@@ -148,23 +168,3 @@ def get_live_matches(message):
 if __name__ == "__main__":
     print("Bot ve Uluslar Ligi Servisi Başlatıldı!")
     bot.infinity_polling(none_stop=True, interval=0, timeout=20)
-def get_live_matches():
-    # Test için örnek maç verisi
-    return [
-        {
-            "home_team": "Galatasaray",
-            "away_team": "Fenerbahçe",
-            "home_score": 2,
-            "away_score": 1,
-            "status": "75'",
-            "league": "Süper Lig"
-        },
-        {
-            "home_team": "Real Madrid",
-            "away_team": "Barcelona",
-            "home_score": 0,
-            "away_score": 0,
-            "status": "İY",
-            "league": "La Liga"
-        }
-    ]

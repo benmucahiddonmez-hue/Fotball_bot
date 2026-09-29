@@ -54,6 +54,18 @@ def get_live_matches():
             "league": "La Liga"
         }
     ]
+def fetch_scoreboard(slug):
+    # Test için örnek maç verisi
+    return [
+        {
+            "home_team": "Galatasaray",
+            "away_team": "Fenerbahçe",
+            "home_score": 2,
+            "away_score": 1,
+            "status": "75'",
+            "league": "Süper Lig"
+        }
+    ]
 
 def fetch_scoreboard(slug):
     url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/{slug}/scoreboard"

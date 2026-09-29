@@ -23,23 +23,19 @@ def run_flask():
 # Flask'ı arka planda başlatıyoruz
 threading.Thread(target=run_flask, daemon=True).start()
 
-# Desteklenen Ligler ve ESPN Kodları (Dünya Kupası eklendi)
+# Desteklenen Ligler, Turnuvalar ve Milli Maç Kodları
 LEAGUES = {
     "🇹🇷 Süper Lig": "tur.1",
+    "🌍 Milli / Hazırlık Maçları": "international.friendly",
     "🇬🇧 Premier League": "eng.1",
     "🇩🇪 Bundesliga": "ger.1",
     "🇮🇹 Serie A": "ita.1",
     "🇪🇸 La Liga": "esp.1",
-    "🏆 Dünya Kupası / Milli": "fifa.world"
+    "⭐ UEFA Şampiyonlar Ligi": "uefa.champions"
 }
 
 def fetch_scoreboard(slug):
-    # Bugün ile önümüzdeki 7 günü kapsayan tarih aralığı (YYYYMMDD-YYYYMMDD)
-    start_date = datetime.now()
-    end_date = start_date + timedelta(days=7)
-    date_range = f"{start_date.strftime('%Y%m%d')}-{end_date.strftime('%Y%m%d')}"
-    
-    url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/{slug}/scoreboard?dates={date_range}"
+    url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/{slug}/scoreboard"
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     }
@@ -54,18 +50,18 @@ def fetch_scoreboard(slug):
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     text = (
-        "⚽ *Futbol & Dünya Kupası Botu*\n\n"
+        "⚽ *Futbol & Milli Maçlar Botu*\n\n"
         "📌 *Komutlar:*\n"
-        "• `/maclar` — Önümüzdeki 7 Günün Maçları\n"
+        "• `/maclar` — Güncel Maç Haftası & Milli Maçlar\n"
         "• `/canli` — Anlık Canlı Skorlar\n"
     )
     bot.reply_to(message, text, parse_mode='Markdown')
 
 @bot.message_handler(commands=['maclar'])
 def get_all_matches(message):
-    msg = bot.reply_to(message, "⏳ Önümüzdeki 7 günün bülteni taranıyor...")
+    msg = bot.reply_to(message, "⏳ Güncel maçlar ve milli karşılaşmalar taranıyor...")
     try:
-        full_text = "⚽ *ÖNÜMÜZDEKİ 7 GÜNÜN MAÇLARI*\n\n"
+        full_text = "⚽ *GÜNCEL BÜLTEN & MİLLİ MAÇLAR*\n\n"
         total_matches = 0
 
         for league_name, slug in LEAGUES.items():
@@ -76,7 +72,7 @@ def get_all_matches(message):
             full_text += f"*{league_name}*\n"
             league_count = 0
 
-            for ev in data['events'][:6]: # Her ligden en fazla 6 maç
+            for ev in data['events'][:6]: # Her kategoriden en fazla 6 maç
                 status = ev.get('status', {}).get('type', {}).get('description', 'Planlandı')
                 competitions = ev.get('competitions', [{}])[0]
                 competitors = competitions.get('competitors', [])
@@ -105,7 +101,7 @@ def get_all_matches(message):
             full_text += "\n"
 
         if total_matches == 0:
-            full_text = "📅 Önümüzdeki 7 gün içinde bültende maç bulunamadı."
+            full_text = "📅 Aktif bültende gösterilecek maç bulunamadı."
 
         bot.edit_message_text(full_text, chat_id=msg.chat.id, message_id=msg.message_id, parse_mode='Markdown')
     except Exception as e:
@@ -113,7 +109,7 @@ def get_all_matches(message):
 
 @bot.message_handler(commands=['canli'])
 def get_live_matches(message):
-    msg = bot.reply_to(message, "🔴 Tüm liglerde ve turnuvalarda canlı maçlar aranıyor...")
+    msg = bot.reply_to(message, "🔴 Tüm liglerde ve milli maçlarda canlı skorlar aranıyor...")
     try:
         live_list = []
 
@@ -149,5 +145,5 @@ def get_live_matches(message):
         bot.edit_message_text(f"❌ Hata: {e}", chat_id=msg.chat.id, message_id=msg.message_id)
 
 if __name__ == "__main__":
-    print("Bot ve Haftalık/Dünya Kupası Servisi Başlatıldı!")
+    print("Bot ve Milli Maç Servisi Başlatıldı!")
     bot.infinity_polling(none_stop=True, interval=0, timeout=20)

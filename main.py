@@ -23,8 +23,9 @@ def run_flask():
 # Flask'ı arka planda başlatıyoruz
 threading.Thread(target=run_flask, daemon=True).start()
 
-# Desteklenen Ligler, Turnuvalar ve Milli Maç Kodları
+# Desteklenen Ligler ve Turnuvalar (UEFA Uluslar Ligi eklendi)
 LEAGUES = {
+    "🇪🇺 UEFA Uluslar Ligi": "uefa.nations",
     "🇹🇷 Süper Lig": "tur.1",
     "🌍 Milli / Hazırlık Maçları": "international.friendly",
     "🇬🇧 Premier League": "eng.1",
@@ -50,18 +51,18 @@ def fetch_scoreboard(slug):
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     text = (
-        "⚽ *Futbol & Milli Maçlar Botu*\n\n"
+        "⚽ *Futbol & Uluslar Ligi Botu*\n\n"
         "📌 *Komutlar:*\n"
-        "• `/maclar` — Güncel Maç Haftası & Milli Maçlar\n"
+        "• `/maclar` — Güncel Maçlar ve Uluslar Ligi\n"
         "• `/canli` — Anlık Canlı Skorlar\n"
     )
     bot.reply_to(message, text, parse_mode='Markdown')
 
 @bot.message_handler(commands=['maclar'])
 def get_all_matches(message):
-    msg = bot.reply_to(message, "⏳ Güncel maçlar ve milli karşılaşmalar taranıyor...")
+    msg = bot.reply_to(message, "⏳ UEFA Uluslar Ligi ve maçlar taranıyor...")
     try:
-        full_text = "⚽ *GÜNCEL BÜLTEN & MİLLİ MAÇLAR*\n\n"
+        full_text = "⚽ *GÜNCEL BÜLTEN & ULUSLAR LİGİ*\n\n"
         total_matches = 0
 
         for league_name, slug in LEAGUES.items():
@@ -109,7 +110,7 @@ def get_all_matches(message):
 
 @bot.message_handler(commands=['canli'])
 def get_live_matches(message):
-    msg = bot.reply_to(message, "🔴 Tüm liglerde ve milli maçlarda canlı skorlar aranıyor...")
+    msg = bot.reply_to(message, "🔴 Uluslar Ligi ve canlı maçlar taranıyor...")
     try:
         live_list = []
 
@@ -145,5 +146,5 @@ def get_live_matches(message):
         bot.edit_message_text(f"❌ Hata: {e}", chat_id=msg.chat.id, message_id=msg.message_id)
 
 if __name__ == "__main__":
-    print("Bot ve Milli Maç Servisi Başlatıldı!")
+    print("Bot ve Uluslar Ligi Servisi Başlatıldı!")
     bot.infinity_polling(none_stop=True, interval=0, timeout=20)

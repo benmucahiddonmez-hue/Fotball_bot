@@ -1,4 +1,3 @@
-git add .
-git commit -m "Bot kodu güncellendi ve API entegrasyonu eklendi"
-git push origin main
-
+flask
+pyTelegramBotAPI
+requests
